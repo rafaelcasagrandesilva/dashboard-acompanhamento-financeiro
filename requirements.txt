@@ -1,6 +1,5 @@
-streamlit==1.19.0
+streamlit==1.32.2
+pandas>=2.0,<3.0
+numpy>=1.24,<2.0
 altair==4.2.2
-pandas==2.2.2
-numpy==1.26.4
-requests
-pillow
+pyarrow>=14.0
