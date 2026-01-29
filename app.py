@@ -6,7 +6,7 @@ import base64
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Dash Financ",
+    page_title="Dash Financeiro",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
