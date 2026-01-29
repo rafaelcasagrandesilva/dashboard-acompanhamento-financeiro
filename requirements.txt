@@ -1,3 +1,6 @@
 streamlit
 pandas
+numpy
+requests
 pyarrow
+altair<5
