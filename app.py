@@ -7,7 +7,7 @@ import base64
 # ================= PAGE CONFIG =================
 st.set_page_config(
     page_title="Acompanhamento Financeiro – Diretoria",
-    page_icon="📊",
+    page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
