@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import os
 import base64
+from zoneinfo import ZoneInfo
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -44,7 +45,7 @@ def load_consolidado():
     )
 
     df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce")
-    hoje = datetime.now()
+    hoje = datetime.now(ZoneInfo("America/Sao_Paulo"))
 
     # Linha de referência até hoje (expectativa)
     df_ate_hoje = df[df["data"] <= hoje].sort_values("data")
@@ -94,7 +95,7 @@ def load_projetos():
         df_p["data"] = pd.to_datetime(df_p["data"], format="%d/%m/%Y", errors="coerce")
         df_p = df_p.dropna(subset=["data"])
 
-        hoje = datetime.now()
+        hoje = datetime.now(ZoneInfo("America/Sao_Paulo"))
 
         # linha de referência SEMPRE até hoje (para cálculos)
         df_ref = df_p[df_p["data"] <= hoje].sort_values("data")
@@ -357,7 +358,7 @@ st.markdown(f"""
       <div class="company">M&E Engenharia</div>
     </div>
     <div class="updated">
-      Atualizado em {datetime.now().strftime('%d/%m/%Y %H:%M')}
+      Atualizado em {datetime.now(ZoneInfo("America/Sao_Paulo")).strftime('%d/%m/%Y %H:%M')}
     </div>
   </div>
 </div>
@@ -371,7 +372,7 @@ def fmt_brl(valor):
         return "R$ 0"
 
 def card_consolidado(titulo, meta_mensal, meta_esperada, executado, percentual, diferenca):
-    data_hoje = datetime.now().strftime("%d/%m/%Y")
+    data_hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y")
     if percentual >= 100:
         color = "var(--green)"
         arrow = "▲"
