@@ -361,7 +361,7 @@ st.markdown(f"""
       <div class="company">M&E Engenharia</div>
     </div>
     <div class="updated">
-      Atualizado em {agora_brasil().strftime('%d/%m/%Y %H:%M')}
+    Atualização automática a cada 1 hora
     </div>
   </div>
 </div>
@@ -459,8 +459,7 @@ with c1:
         load_consolidado.clear()
         load_projetos.clear()
         st.rerun()
-with c2:
-    st.caption("Atualização automática a cada 1 hora")
+
 
 # ================= CONSOLIDADO =================
 st.markdown("""
