@@ -84,7 +84,7 @@ def load_projetos():
         .str.replace("%", "percentual", regex=False)
         .str.replace("ç", "c", regex=False)
         .str.replace("ã", "a", regex=False)
-        .str.replace("á", "a", regex=False)0
+        .str.replace("á", "a", regex=False)
         .str.replace("é", "e", regex=False)
         .str.replace("í", "i", regex=False)
         .str.replace("ó", "o", regex=False)
