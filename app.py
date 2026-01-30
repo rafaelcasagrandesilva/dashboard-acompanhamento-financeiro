@@ -44,11 +44,13 @@ def load_consolidado():
     )
 
     df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce")
-    hoje = datetime.now()
 
-    # Linha de referência até hoje (expectativa)
-    df_ate_hoje = df[df["data"] <= hoje].sort_values("data")
-    linha_hoje = df_ate_hoje.iloc[-1]
+    # Data de referência baseada na última execução real
+    df_exec = df[df["executado_acumulado"] > 0]
+    data_referencia = df_exec["data"].max()
+
+    # Linha de referência da expectativa (até última execução)
+    linha_hoje = df[df["data"] == data_referencia].iloc[0]
 
     # Meta esperada até hoje (cronograma)
     meta_esperada_ate_hoje = float(linha_hoje.get("meta_acumulado", 0)) * 1000
@@ -94,15 +96,16 @@ def load_projetos():
         df_p["data"] = pd.to_datetime(df_p["data"], format="%d/%m/%Y", errors="coerce")
         df_p = df_p.dropna(subset=["data"])
 
-        hoje = datetime.now()
+        # Data de referência baseada na última execução real do projeto
+        df_exec = df_p[df_p["executado_acumulado"] > 0]
+        data_referencia = df_exec["data"].max()
 
-        # linha de referência SEMPRE até hoje (para cálculos)
-        df_ref = df_p[df_p["data"] <= hoje].sort_values("data")
-        linha_ref = df_ref.iloc[-1]
+        # Linha de referência da expectativa do projeto
+        linha_ref = df_p[df_p["data"] == data_referencia].iloc[0]
 
         # última data com lançamento real (para exibição)
         df_valid = df_p[
-            (df_p["data"] <= hoje) &
+            (df_p["data"] <= data_referencia) &
             (df_p["executado"].notna())
         ]
 
