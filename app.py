@@ -6,7 +6,7 @@ import base64
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Acompanhamento Financeiro - M&E Engenharia",
+    page_title="Acompanhamento Financeiro",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -43,23 +43,31 @@ def load_consolidado():
         .str.replace(" ", "_", regex=False)
     )
 
-    # considerar apenas linhas com execução real
-    df_valid = df[df["executado_acumulado"] > 0]
+    df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce")
+    hoje = datetime.now()
 
-    # fallback se não houver execução
-    linha = df_valid.iloc[-1] if not df_valid.empty else df.iloc[-1]
+    # Linha de referência até hoje (expectativa)
+    df_ate_hoje = df[df["data"] <= hoje].sort_values("data")
+    linha_hoje = df_ate_hoje.iloc[-1]
 
-    meta = float(linha.get("meta_acumulado", 0)) * 1000
-    executado = float(linha.get("executado_acumulado", 0)) * 1000
-    percentual = (executado / meta * 100) if meta > 0 else 0
-    diferenca = executado - meta
+    # Meta esperada até hoje (cronograma)
+    meta_esperada_ate_hoje = float(linha_hoje.get("meta_acumulado", 0)) * 1000
+
+    # Meta mensal prevista (total do mês)
+    meta_mensal_prevista = float(df["meta_acumulado"].max()) * 1000
+
+    # Executado acumulado até hoje
+    executado = float(linha_hoje.get("executado_acumulado", 0)) * 1000
+
+    percentual = (executado / meta_esperada_ate_hoje * 100) if meta_esperada_ate_hoje > 0 else 0
+    diferenca = executado - meta_esperada_ate_hoje
 
     return {
-        "meta_acumulado": meta,
+        "meta_mensal_prevista": meta_mensal_prevista,
+        "meta_esperada_ate_hoje": meta_esperada_ate_hoje,
         "executado_acumulado": executado,
         "percentual_execucao": percentual,
-        "diferenca_meta": diferenca,
-        "data_referencia": linha.get("data", "")
+        "diferenca_meta": diferenca
     }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -104,13 +112,21 @@ def load_projetos():
             else linha_ref["data"].strftime("%d/%m/%Y")
         )
 
-        meta = float(linha_ref.get("meta_acumulado", 0)) * 1000
+        # Meta esperada até hoje (cronograma do projeto)
+        meta_esperada_ate_hoje = float(linha_ref.get("meta_acumulado", 0)) * 1000
+
+        # Meta mensal prevista do projeto (total do mês)
+        meta_mensal_prevista = float(df_p["meta_acumulado"].max()) * 1000
+
+        # Executado acumulado até hoje
         executado = float(linha_ref.get("executado_acumulado", 0)) * 1000
-        percentual = (executado / meta * 100) if meta > 0 else 0
-        diferenca = executado - meta
+
+        percentual = (executado / meta_esperada_ate_hoje * 100) if meta_esperada_ate_hoje > 0 else 0
+        diferenca = executado - meta_esperada_ate_hoje
 
         projetos[projeto.lower().replace(" ", "_")] = {
-            "meta_acumulado": meta,
+            "meta_mensal_prevista": meta_mensal_prevista,
+            "meta_esperada_ate_hoje": meta_esperada_ate_hoje,
             "executado_acumulado": executado,
             "percentual_execucao": percentual,
             "diferenca_meta": diferenca,
@@ -145,7 +161,7 @@ html, body, [data-testid="stAppViewContainer"] {
 .block-container {
     padding-top: 3rem !important; 
     padding-bottom: 2rem !important;
-    max-width: 1300px;
+    max-width: 1400px;
 }
 
 .card {
@@ -347,14 +363,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ================= CARD COMPONENT =================
+# ================= CARD CONSOLIDADO ==============
 def fmt_brl(valor):
     try:
         return f"R$ {valor:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
     except Exception:
         return "R$ 0"
 
-def card_kpi(titulo, meta, executado, percentual, diferenca, data_ref):
+def card_consolidado(titulo, meta_mensal, meta_esperada, executado, percentual, diferenca):
+    data_hoje = datetime.now().strftime("%d/%m/%Y")
     if percentual >= 100:
         color = "var(--green)"
         arrow = "▲"
@@ -369,14 +386,60 @@ def card_kpi(titulo, meta, executado, percentual, diferenca, data_ref):
     <div class="card" style="border-left:6px solid {color};">
       <div class="card-title">
         {titulo}
-        <span class="card-date">Último lançamento: {data_ref}</span>
+        <span class="card-date">Data de Referência: {data_hoje}</span>
       </div>
 
       <div class="kpis">
-        <div><div class="kpi-label">Meta acumulada</div><div class="kpi-value">{fmt_brl(meta)}</div></div>
-        <div><div class="kpi-label">Executado</div><div class="kpi-value">{fmt_brl(executado)}</div></div>
-        <div><div class="kpi-label">% Execução</div><div class="kpi-value">{percentual:.1f}%</div></div>
-        <div><div class="kpi-label">Diferença</div><div class="kpi-sub" style="color:{color};">{arrow} {fmt_brl(abs(diferenca))}</div></div>
+        <div>
+          <div class="kpi-label">Meta do mês</div>
+          <div class="kpi-value">{fmt_brl(meta_mensal)}</div>
+        </div>
+        <div>
+          <div class="kpi-label">meta até hoje</div>
+          <div class="kpi-value">{fmt_brl(meta_esperada)}</div>
+        </div>
+        <div><div class="kpi-label">Realizado</div><div class="kpi-value">{fmt_brl(executado)}</div></div>
+        <div><div class="kpi-label">Executado (%)</div><div class="kpi-value">{percentual:.1f}%</div></div>
+        <div><div class="kpi-label">atraso/saldo </div><div class="kpi-sub" style="color:{color};">{arrow} {fmt_brl(abs(diferenca))}</div></div>
+      </div>
+
+      <div class="progress">
+        <div class="progress-bar" style="width:{min(percentual,100)}%; background:{color};"></div>
+      </div>
+    </div>
+    """
+
+# ================= CARD PROJETOS =================
+def card_kpi(titulo, meta_mensal, meta_esperada, executado, percentual, diferenca, data_ref):
+    if percentual >= 100:
+        color = "var(--green)"
+        arrow = "▲"
+    elif percentual < 70:
+        color = "var(--red)"
+        arrow = "▼"
+    else:
+        color = "var(--yellow)"
+        arrow = "▲" if diferenca >= 0 else "▼"
+
+    return f"""
+    <div class="card" style="border-left:6px solid {color};">
+      <div class="card-title">
+        {titulo}
+        <span class="card-date">Último Lançamento: {data_ref}</span>
+      </div>
+
+      <div class="kpis">
+        <div>
+          <div class="kpi-label">meta do mês</div>
+          <div class="kpi-value">{fmt_brl(meta_mensal)}</div>
+        </div>
+        <div>
+          <div class="kpi-label">meta até hoje</div>
+          <div class="kpi-value">{fmt_brl(meta_esperada)}</div>
+        </div>
+        <div><div class="kpi-label">Realizado</div><div class="kpi-value">{fmt_brl(executado)}</div></div>
+        <div><div class="kpi-label">executado (%)</div><div class="kpi-value">{percentual:.1f}%</div></div>
+        <div><div class="kpi-label">atraso/saldo</div><div class="kpi-sub" style="color:{color};">{arrow} {fmt_brl(abs(diferenca))}</div></div>
       </div>
 
       <div class="progress">
@@ -403,13 +466,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown(card_kpi(
-    "Consolidado Geral",
-    consolidado["meta_acumulado"],
+st.markdown(card_consolidado(
+    "Visão geral do mês",
+    consolidado["meta_mensal_prevista"],
+    consolidado["meta_esperada_ate_hoje"],
     consolidado["executado_acumulado"],
     consolidado["percentual_execucao"],
-    consolidado["diferenca_meta"],
-    consolidado["data_referencia"]
+    consolidado["diferenca_meta"]
 ), unsafe_allow_html=True)
 
 # ================= PROJETOS 2x2 =================
@@ -427,7 +490,8 @@ for i, (nome, p) in enumerate(lista):
     with col1 if i % 2 == 0 else col2:
         st.markdown(card_kpi(
             nome.replace("_"," ").title(),
-            p["meta_acumulado"],
+            p["meta_mensal_prevista"],
+            p["meta_esperada_ate_hoje"],
             p["executado_acumulado"],
             p["percentual_execucao"],
             p["diferenca_meta"],
