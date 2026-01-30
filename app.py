@@ -1,8 +1,12 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 import base64
+
+def agora_brasil():
+    return datetime.now(ZoneInfo("America/Sao_Paulo"))
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -44,7 +48,7 @@ def load_consolidado():
     )
 
     df["data"] = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce")
-    hoje = datetime.now().replace(tzinfo=None)
+    hoje = agora_brasil().replace(tzinfo=None)
 
     # Linha de referência até hoje (expectativa)
     df_ate_hoje = df[df["data"] <= hoje].sort_values("data")
@@ -80,7 +84,7 @@ def load_projetos():
         .str.replace("%", "percentual", regex=False)
         .str.replace("ç", "c", regex=False)
         .str.replace("ã", "a", regex=False)
-        .str.replace("á", "a", regex=False)
+        .str.replace("á", "a", regex=False)0
         .str.replace("é", "e", regex=False)
         .str.replace("í", "i", regex=False)
         .str.replace("ó", "o", regex=False)
@@ -94,7 +98,7 @@ def load_projetos():
         df_p["data"] = pd.to_datetime(df_p["data"], format="%d/%m/%Y", errors="coerce")
         df_p = df_p.dropna(subset=["data"])
 
-        hoje = datetime.now().replace(tzinfo=None)
+        hoje = agora_brasil().replace(tzinfo=None)
 
         # linha de referência SEMPRE até hoje (para cálculos)
         df_ref = df_p[df_p["data"] <= hoje].sort_values("data")
@@ -357,7 +361,7 @@ st.markdown(f"""
       <div class="company">M&E Engenharia</div>
     </div>
     <div class="updated">
-      Atualizado em {datetime.now().strftime('%d/%m/%Y %H:%M')}
+      Atualizado em {agora_brasil().strftime('%d/%m/%Y %H:%M')}
     </div>
   </div>
 </div>
@@ -371,7 +375,7 @@ def fmt_brl(valor):
         return "R$ 0"
 
 def card_consolidado(titulo, meta_mensal, meta_esperada, executado, percentual, diferenca):
-    data_hoje = datetime.now().strftime("%d/%m/%Y")
+    data_hoje = agora_brasil().strftime("%d/%m/%Y")
     if percentual >= 100:
         color = "var(--green)"
         arrow = "▲"
